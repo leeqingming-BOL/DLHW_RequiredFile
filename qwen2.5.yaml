@@ -5,26 +5,30 @@ trust_remote_code: true  # 是否信任远程代码，设置为true允许运行�
 ### method（训练方法相关配置）
 stage: sft  # 训练阶段，sft表示进行有监督微调(Supervised Fine-Tuning)
 do_train: true  # 是否执行训练，true表示进行训练
-finetuning_type: lora  # 微调类型，lora表示使用LoRA(Low-Rank Adaptation)参数高效微调方法
+finetuning_type: qlora  # 微调类型，qlora表示使用QLoRA（Quantized Low-Rank Adaptation）参数高效微调方法
+quantization_bit: 4  # 使用4比特量化以大幅减少显存占用，最适合T4 GPU
+double_quantization: true  # 启用双重量化进一步节省内存
 lora_rank: 8  # LoRA的秩，决定了适配器的参数量大小，越大效果可能越好但参数量增加
+lora_alpha: 32  # LoRA缩放因子，通常设为rank的4倍
+lora_dropout: 0.1  # LoRA的dropout率，有助于防止过拟合
 lora_target: all  # LoRA目标层，all表示对所有可训练的线性层应用LoRA
 
 ### dataset（数据集相关配置）
 dataset: DISC-Law-SFT  # 训练数据集名称，对应dataset_info.json中定义的法律领域数据集
 template: qwen  # 对话模板，使用Qwen模型的专用模板格式化输入输出
-cutoff_len: 2048  # 截断长度，超过此长度的输入会被截断
+cutoff_len: 1536  # 截断长度，超过此长度的输入会被截断
 max_samples: 0  # 最大样本数，0表示使用全部数据，可用于调试时限制数据量
 overwrite_cache: true  # 是否覆盖缓存，true表示每次训练都重新处理数据集
-preprocessing_num_workers: 16  # 数据预处理的并行工作进程数，加速数据处理
-dataloader_num_workers: 4  # 数据加载器的并行工作进程数，加速数据加载
+preprocessing_num_workers: 4  # 数据预处理的并行工作进程数，加速数据处理
+dataloader_num_workers: 2  # 数据加载器的并行工作进程数，加速数据加载
 
 ### output（输出相关配置）
-output_dir: saves/qwen2.5-7b/lora/sft  # 输出目录，模型检查点将保存在此目录
+output_dir: ./saves/qwen2.5-law-qlora  # 输出目录，模型检查点将保存在此目录
 logging_steps: 10  # 日志记录步数，每10个步骤记录一次训练日志
-save_steps: 500  # 保存检查点的步数，每500步保存一次模型
+save_steps: 200  # 保存检查点的步数，每200步保存一次模型
 plot_loss: true  # 是否绘制损失曲线，训练结束后会生成损失曲线图
 overwrite_output_dir: true  # 是否覆盖输出目录，true表示如果目录已存在则覆盖
-save_only_model: false  # 是否只保存模型，false表示同时保存优化器、调度器等状态
+save_total_limit: 3  # 最多保存3个检查点，避免占用过多磁盘空间
 report_to: none  # 实验监控工具，none表示不使用任何监控工具（如wandb、tensorboard等）
 
 ### train（训练参数配置）
@@ -33,14 +37,23 @@ gradient_accumulation_steps: 8  # 梯度累积步数，累积8步后再更新，
 learning_rate: 1.0e-4  # 学习率，微调通常使用较小的学习率如1e-4
 num_train_epochs: 3.0  # 训练轮数，完整遍历数据集3次
 lr_scheduler_type: cosine  # 学习率调度器类型，cosine表示余弦退火调度
-warmup_ratio: 0.1  # 预热比例，训练初期10%的步骤用于预热学习率
-bf16: true  # 是否使用bfloat16精度，启用混合精度训练提高效率和降低显存占用
-ddp_timeout: 180000000  # 分布式训练超时时间，单位为秒，设置较大值避免长时间训练超时
-resume_from_checkpoint: null  # 从检查点恢复训练，null表示不从检查点恢复
+warmup_ratio: 0.03  # 预热比例，训练初期用于稳定学习过程
+weight_decay: 0.0  # 权重衰减，设为0避免正则化影响适配器参数
+optim: adamw_torch  # 使用AdamW优化器，PyTorch实现版本
+fp16: true  # 是否使用半精度训练，T4支持FP16，可大幅节省显存
+gradient_checkpointing: true  # 启用梯度检查点以降低内存使用，关键的内存优化技术
 
 ### eval（评估相关配置）
 # eval_dataset: DISC-Law-SFT  # 评估数据集（已注释掉），避免与val_size冲突
-val_size: 0.1  # 验证集大小，从训练集中分出10%作为验证集
+val_size: 0.05  # 验证集大小，从训练集中分出5%作为验证集
 per_device_eval_batch_size: 1  # 每个设备的评估批大小
 eval_strategy: steps  # 评估策略，按步数进行评估
-eval_steps: 500  # 评估步数，每500步进行一次评估 
+eval_steps: 200  # 评估步数，每200步进行一次评估
+max_new_tokens: 512  # 生成回答时的最大新token数限制
+
+### 额外优化 ###
+remove_unused_columns: false  # 不移除未使用的列，避免错误
+bf16: false  # 关闭bf16，T4 GPU不支持bfloat16格式
+torch_compile: false  # 关闭torch编译，减少初始化时的内存消耗
+log_level: info  # 设置日志级别为info，提供足够信息但不过于详细
+deepspeed: null  # 不使用DeepSpeed，在单GPU环境保持简单配置 
