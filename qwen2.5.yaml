@@ -10,7 +10,7 @@ lora_rank: 8
 lora_target: all
 
 ### dataset
-dataset: DISC-Law-SFT
+dataset: data/DISC-Law-SFT
 template: qwen
 cutoff_len: 2048
 max_samples: 0  # 0表示使用全部数据
