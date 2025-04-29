@@ -27,6 +27,10 @@ overwrite_output_dir: true  # 是否覆盖输出目录，true表示如果目录�
 save_only_model: false  # 是否只保存模型，false表示同时保存优化器、调度器等状态
 report_to: none  # 实验监控工具，none表示不使用任何监控工具（如wandb、tensorboard等）
 
+### wandb配置
+report_to: wandb  # 添加wandb报告
+run_name: DISC-Law-SFT_Qwen2.5-1.5B  # 实验名称
+
 ### train（训练参数配置）
 per_device_train_batch_size: 1  # 每个设备的训练批大小，设为1避免显存不足
 # gradient_accumulation_steps: 8  # 梯度累积步数，累积8步后再更新，相当于批大小为8
