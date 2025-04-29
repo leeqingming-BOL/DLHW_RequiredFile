@@ -5,10 +5,10 @@ trust_remote_code: true  # 是否信任远程代码，设置为true允许运行�
 ### method（训练方法相关配置）
 stage: sft  # 训练阶段，sft表示进行有监督微调(Supervised Fine-Tuning)
 do_train: true  # 是否执行训练，true表示进行训练
-finetuning_type: qlora  # 微调类型，qlora表示使用QLoRA（Quantized Low-Rank Adaptation）参数高效微调方法
-quantization_bit: 4  # 使用4比特量化以大幅减少显存占用，最适合T4 GPU
+finetuning_type: lora  # 微调类型，必须是lora而不是qlora
+quantization_bit: 4  # 使用4比特量化以大幅减少显存占用，设置此参数会自动启用QLoRA
 double_quantization: true  # 启用双重量化进一步节省内存
-lora_rank: 8  # LoRA的秩，决定了适配器的参数量大小，越大效果可能越好但参数量增加
+lora_rank: 8  # LoRA的秩，决定了适配器的参数量大小
 lora_alpha: 32  # LoRA缩放因子，通常设为rank的4倍
 lora_dropout: 0.1  # LoRA的dropout率，有助于防止过拟合
 lora_target: all  # LoRA目标层，all表示对所有可训练的线性层应用LoRA
